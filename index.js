@@ -130,6 +130,122 @@ async function run() {
       }
     });
 
+    app.put("/updateSingleTask/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const { title, status, priority, id, description, deadline } = req.body;
+
+        console.log(req.body);
+
+        // Find the document that matches the provided email
+        const document = await taskCollection.findOne({ email });
+
+        if (!document) {
+          return res
+            .status(404)
+            .json({ message: "Document not found for the email" });
+        }
+
+        let updatedDocument = { ...document };
+
+        let targetArray, targetStatus;
+        if (status === "todo") {
+          targetArray = "todo";
+          targetStatus = "todo";
+        } else if (status === "inProgress") {
+          targetArray = "inProgress";
+          targetStatus = "inProgress";
+        } else if (status === "completed") {
+          targetArray = "completed";
+          targetStatus = "completed";
+        } else {
+          return res.status(400).json({ message: "Invalid status" });
+        }
+
+        const taskIndex = updatedDocument[targetArray].findIndex(
+          (task) => task.id === id
+        );
+        if (taskIndex !== -1) {
+          // Update the task fields if provided in the request body
+          if (title) updatedDocument[targetArray][taskIndex].title = title;
+          if (priority)
+            updatedDocument[targetArray][taskIndex].priority = priority;
+          if (description)
+            updatedDocument[targetArray][taskIndex].description = description;
+          if (deadline)
+            updatedDocument[targetArray][taskIndex].deadline = deadline;
+          // Update the document in the collection
+          await taskCollection.updateOne({ email }, { $set: updatedDocument });
+        } else {
+          return res
+            .status(404)
+            .json({ message: "Task not found in the specified array" });
+        }
+
+        res
+          .status(200)
+          .json({ message: "Task updated", document: updatedDocument });
+      } catch (err) {
+        console.error("Error updating task:", err);
+        res.status(500).json({ message: "Failed to update task" });
+      }
+    });
+
+    app.put("/deleteSingleTask/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const { status, id } = req.body;
+
+        console.log({
+          status,
+          id,
+        });
+        // Find the document that matches the provided email
+        const document = await taskCollection.findOne({ email });
+
+        if (!document) {
+          return res
+            .status(404)
+            .json({ message: "Document not found for the email" });
+        }
+
+        let updatedDocument = { ...document };
+
+        let targetArray;
+        if (status === "todo") {
+          targetArray = "todo";
+        } else if (status === "inProgress") {
+          targetArray = "inProgress";
+        } else if (status === "completed") {
+          targetArray = "completed";
+        } else {
+          return res.status(400).json({ message: "Invalid status" });
+        }
+
+        const taskIndex = updatedDocument[targetArray].findIndex(
+          (task) => task.id === id
+        );
+        if (taskIndex !== -1) {
+          // Remove the task from the target array
+          updatedDocument[targetArray].splice(taskIndex, 1);
+
+          // Update the document in the collection
+          await taskCollection.updateOne({ email }, { $set: updatedDocument });
+
+          res
+            .status(200)
+            .json({ message: "Task deleted", document: updatedDocument });
+        } else {
+          return res
+            .status(404)
+            .json({ message: "Task not found in the specified array" });
+        }
+      } catch (err) {
+        console.error("Error deleting task:", err);
+        res.status(500).json({ message: "Failed to delete task" });
+      }
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
