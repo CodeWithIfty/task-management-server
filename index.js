@@ -53,6 +53,8 @@ async function run() {
       }
     });
 
+    // ... (your previous code)
+
     app.post("/addTodoTask", async (req, res) => {
       try {
         const { email, data } = req.body;
@@ -65,7 +67,7 @@ async function run() {
           // If document not found, create a new one
           const newData = {
             email,
-            todo: [{ ...data, id: `task1`, status: "todo" }],
+            todo: [{ ...data, id: generateRandomID(), status: "todo" }],
             inProgress: [],
             completed: [],
           };
@@ -78,7 +80,7 @@ async function run() {
 
         // Add a new task to the 'todo' array
         const newTask = {
-          id: `task${document.todo.length + 2}`, // Generate unique ID
+          id: generateRandomID(), // Generate unique ID
           title,
           description,
           priority,
@@ -102,6 +104,13 @@ async function run() {
         res.status(500).json({ message: "Failed to add task to todo" });
       }
     });
+
+    // Function to generate a random ID
+    function generateRandomID() {
+      const timestamp = new Date().getTime().toString(36);
+      const randomString = Math.random().toString(36).substring(2, 8);
+      return `${timestamp}-${randomString}`;
+    }
 
     app.put("/updateTasks/:email", async (req, res) => {
       try {
